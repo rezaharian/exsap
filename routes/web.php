@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\UserAccessController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Teknik\KerusakanMesinController;
+use App\Http\Controllers\Teknik\PerbaikanTeknikController;
 use App\Http\Controllers\UserController;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
@@ -129,6 +130,33 @@ Route::middleware('auth')->group(function () {
         Route::delete('/{id}', [KerusakanMesinController::class, 'delete'])
             ->middleware('permission:kerusakan_mesin_delete')
             ->name('teknik.kerusakanmesin.delete');
+    });
+    Route::prefix('teknik/perbaikanteknik')->group(function () {
+
+        // INDEX
+        Route::get('/', [PerbaikanTeknikController::class, 'index'])
+            ->middleware('permission:perbaikan_teknik_view')
+            ->name('teknik.perbaikanteknik.index');
+
+        // CREATE
+        Route::get('/create', [PerbaikanTeknikController::class, 'create'])
+            ->middleware('permission:perbaikan_teknik_create')
+            ->name('teknik.perbaikanteknik.create');
+
+        Route::post('/', [PerbaikanTeknikController::class, 'store'])
+            ->middleware('permission:perbaikan_teknik_create')
+            ->name('teknik.perbaikanteknik.store');
+        // EDIT / UPDATE
+        Route::get('/{id}/edit', [PerbaikanTeknikController::class, 'edit'])
+            ->middleware('permission:perbaikan_teknik_edit')
+            ->name('teknik.perbaikanteknik.edit');
+        Route::put('/{id}/update', [PerbaikanTeknikController::class, 'update'])
+            ->middleware('permission:perbaikan_teknik_edit')
+            ->name('teknik.perbaikanteknik.update');
+        // DELETE
+        Route::delete('/{id}', [PerbaikanTeknikController::class, 'delete'])
+            ->middleware('permission:perbaikan_teknik_delete')
+            ->name('teknik.perbaikanteknik.delete');
     });
 
 

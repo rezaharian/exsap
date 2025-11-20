@@ -13,14 +13,14 @@
             <thead class="table-light">
                 <tr>
                     <th>#</th>
-                    <th>Name</th>
+                    <th>Name permission</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach ($permissions as $permission)
                     <tr>
-                        <td>{{ $loop->iteration + ($permissions->currentPage() - 1) * $permissions->perPage() }}</td>
+                        <td>{{ $loop->iteration }}</td>
                         <td>{{ $permission->name }}</td>
                         <td>
                             <a href="{{ route('mgpermissions.edit', ['mgpermission' => $permission->id]) }}"

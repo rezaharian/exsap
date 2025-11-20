@@ -10,7 +10,7 @@ class PermissionController extends Controller
 {
     public function index()
     {
-        $permissions = Permission::orderBy('name')->paginate(10);
+        $permissions = Permission::orderBy('name')->get();
         return view('administration.permissions.index', compact('permissions'));
     }
 

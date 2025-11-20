@@ -31,10 +31,10 @@
                     @endcan
 
                     @can('perbaikan_teknik_view')
-                        {{-- <a href="{{ route('perbaikan_teknik.index') }}"
-                            class="d-flex align-items-center px-1 py-1  hover-bg {{ request()->routeIs('perbaikan_teknik.*') ? 'bg-light fw-semibold' : '' }}">
+                        <a href="{{ route('teknik.perbaikanteknik.index') }}"
+                            class="d-flex align-items-center px-1 py-1  hover-bg {{ request()->routeIs('teknik.perbaikanteknik.*') ? 'bg-light fw-semibold' : '' }}">
                             <i class="bi bi-tools me-2"></i> Perbaikan Teknik
-                        </a> --}}
+                        </a>
                     @endcan
                 </nav>
             </div>
