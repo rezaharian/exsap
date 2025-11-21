@@ -3,13 +3,13 @@
 @section('content')
     <div class="container">
         <h1 class="mb-4">Permissions</h1>
-        <a href="{{ route('mgpermissions.create') }}" class="btn btn-primary mb-3">Add Permission</a>
+        <a href="{{ route('mgpermissions.create') }}" class="btn btn-sm btn-primary mb-3">Add Permission</a>
 
         @if (session('success'))
             <div class="alert alert-success">{{ session('success') }}</div>
         @endif
 
-        <table class="table table-bordered table-hover datatable">
+        <table class="table table-bordered table-sm table-hover datatable">
             <thead class="table-light">
                 <tr>
                     <th>#</th>

@@ -19,6 +19,14 @@
     {{-- DATATABLES CSS --}}
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
 
+
+    {{-- //fontawsome --}}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css">
+
+
+
+
+
     {{-- Vite --}}
     @vite(['././resources/js/app.js'])
 
@@ -38,7 +46,7 @@
 
         /* Font tabel lebih kecil */
         table.dataTable {
-            font-size: 12px;
+            font-size: 13pt;
             /* ubah sesuai kebutuhan */
         }
 

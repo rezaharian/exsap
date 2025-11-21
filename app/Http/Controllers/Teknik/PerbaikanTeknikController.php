@@ -3,9 +3,13 @@
 namespace App\Http\Controllers\Teknik;
 
 use App\Http\Controllers\Controller;
+use App\Models\capD;
 use App\Models\KerusakanTeknik;
 use App\Models\NamaMesin;
+use App\Models\prob_msd;
+use App\Models\prob_msn;
 use App\Models\Sparepat;
+use App\Models\unit_msn;
 use App\Models\vmacunit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -101,7 +105,7 @@ class PerbaikanTeknikController extends Controller
         }
 
 
-        return redirect()->route('kerusakanteknik.index')
+        return redirect()->route('teknik.perbaikanteknik.index')
             ->with('success', 'Data kerusakan teknik berhasil ditambahkan.');
     }
 
@@ -199,7 +203,7 @@ class PerbaikanTeknikController extends Controller
             }
 
             DB::commit();
-            return redirect()->route('kerusakanteknik.index')
+            return redirect()->route('teknik.perbaikanteknik.index')
                 ->with('success', 'Data kerusakan berhasil diperbarui!');
         } catch (\Exception $e) {
             DB::rollBack();
@@ -222,12 +226,175 @@ class PerbaikanTeknikController extends Controller
         // Hapus data utama
         $data->delete();
 
-        return redirect()->route('kerusakanteknik.index')
+        return redirect()->route('teknik.perbaikanteknik.index')
             ->with('success', 'Data dan sparepart terkait berhasil dihapus');
     }
 
 
-    public function laporanperline(Request $request)
+
+    public function excel($tahun)
+    {
+
+        if (!$tahun) {
+            return redirect()->back()->with('error', 'Silakan pilih tahun terlebih dahulu.');
+        }
+
+        // Ambil semua data sesuai tahun
+        $data = KerusakanTeknik::join('vmacunit', 'kerusakan_teknik.lokasi_line', '=', 'vmacunit.LINE')
+            ->whereYear('kerusakan_teknik.tgl', $tahun)
+            // ->orderBy('kerusakan_teknik.tgl', 'asc')
+            ->orderBy('vmacunit.NL', 'asc') // urutkan berdasarkan nilai numerik line
+            ->select('kerusakan_teknik.*', 'vmacunit.NL') // ambil juga NL jika perlu
+            ->get()
+            ->groupBy(function ($item) {
+                return date('Y-m', strtotime($item->tgl)); // grup per bulan
+            })
+            ->map(function ($items) {
+                return $items->groupBy('lokasi_line'); // dalam bulan, grup per lokasi line
+            });
+
+
+        if ($data->isEmpty()) {
+            return redirect()->back()->with('warning', "Tidak ada data untuk tahun {$tahun}.");
+        }
+
+        $spreadsheet = new Spreadsheet();
+        $sheetIndex = 0;
+
+        foreach ($data as $bulan => $lines) {
+            [$tahunBulan, $bulanNum] = explode('-', $bulan);
+
+            // Ambil jumlah baris dari tabel capD untuk bulan dan tahun yang sama
+            $jumlahBaris = capD::whereYear('cappingtgl', $tahunBulan)
+                ->whereMonth('cappingtgl', $bulanNum)
+                ->where('isdeleted', '0')
+                ->count();
+
+            if ($sheetIndex > 0) {
+                $spreadsheet->createSheet();
+            }
+
+            $spreadsheet->setActiveSheetIndex($sheetIndex);
+            $sheet = $spreadsheet->getActiveSheet();
+
+            $sheet->setTitle(substr(strtoupper(date('F_Y', strtotime($bulan . '-01'))), 0, 31));
+
+            $row = 1;
+
+            // Judul laporan
+            $sheet->setCellValue("A{$row}", "LAPORAN KERUSAKAN TEKNIK TAHUN {$tahunBulan}");
+            $sheet->mergeCells("A{$row}:D{$row}");
+            $sheet->getStyle("A{$row}")->getFont()->setBold(true)->setSize(12);
+            $sheet->getStyle("A{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $row += 2;
+
+            // Header Bulan
+            $namaBulan = strtoupper(date('F Y', strtotime($bulan . '-01')));
+            $sheet->setCellValue("A{$row}", "BULAN: {$namaBulan}");
+            $sheet->mergeCells("A{$row}:D{$row}");
+            $sheet->getStyle("A{$row}")->getFont()->setBold(true)->setSize(10);
+            $sheet->getStyle("A{$row}")->getFill()
+                ->setFillType(Fill::FILL_SOLID)
+                ->getStartColor()->setARGB('FFD9EAD3');
+            $row++;
+
+            foreach ($lines as $lokasi => $items) {
+                $sheet->setCellValue("A{$row}", "LOKASI LINE: {$lokasi}");
+                $sheet->mergeCells("A{$row}:D{$row}");
+                $sheet->getStyle("A{$row}")->getFont()->setBold(true)->setSize(10)->getColor()->setARGB('FF0000');
+                $row++;
+
+                $headers = ['No', 'Deskripsi Masalah', 'Tindakan Perbaikan', 'Durasi (Jam)'];
+                $col = 'A';
+                foreach ($headers as $header) {
+                    $sheet->setCellValue($col . $row, $header);
+                    $sheet->getStyle($col . $row)->getFont()->setBold(true)->setSize(9);
+                    $sheet->getStyle($col . $row)->getAlignment()
+                        ->setHorizontal(Alignment::HORIZONTAL_CENTER)
+                        ->setVertical(Alignment::VERTICAL_CENTER)
+                        ->setWrapText(true);
+                    $sheet->getStyle($col . $row)->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+                    $sheet->getColumnDimension($col)->setAutoSize(false);
+                    $col++;
+                }
+                $row++;
+
+                $no = 1;
+                $totalDurasiLine = 0;
+                $totalKasusLine = 0;
+
+                foreach ($items as $item) {
+                    $deskripsi = wordwrap($item->deskripsi_masalah, 20, "\n", true);
+                    $tindakan = wordwrap($item->tindakan_perbaikan, 20, "\n", true);
+                    $durasi = floatval(str_replace(',', '.', $item->durasi_jam));
+
+                    $sheet->setCellValue("A{$row}", $no++);
+                    $sheet->setCellValue("B{$row}", $deskripsi);
+                    $sheet->setCellValue("C{$row}", $tindakan);
+                    $sheet->setCellValue("D{$row}", $durasi);
+
+                    // Format angka 2 desimal di kolom D
+                    $sheet->getStyle("D{$row}")->getNumberFormat()
+                        ->setFormatCode('#,##0.00');
+
+                    $sheet->getStyle("A{$row}:D{$row}")
+                        ->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+                    $sheet->getStyle("A{$row}:D{$row}")
+                        ->getAlignment()->setWrapText(true)->setVertical(Alignment::VERTICAL_TOP);
+                    $sheet->getStyle("A{$row}:D{$row}")->getFont()->setSize(9);
+
+                    $sheet->getColumnDimension('A')->setWidth(4);
+                    $sheet->getColumnDimension('B')->setWidth(35);
+                    $sheet->getColumnDimension('C')->setWidth(35);
+                    $sheet->getColumnDimension('D')->setWidth(12);
+
+                    $totalDurasiLine += $durasi;
+                    $totalKasusLine += isset($item->kasus) ? $item->kasus : 1;
+                    $row++;
+                }
+
+                // Total durasi
+                $sheet->setCellValue("A{$row}", "TOTAL DURASI");
+                $sheet->mergeCells("A{$row}:C{$row}");
+                $sheet->setCellValue("D{$row}", $totalDurasiLine);
+                $sheet->getStyle("D{$row}")->getNumberFormat()->setFormatCode('#,##0.00');
+                $sheet->getStyle("A{$row}:D{$row}")->getFont()->setBold(true)->setSize(9);
+                $sheet->getStyle("A{$row}:D{$row}")
+                    ->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+                $sheet->getStyle("D{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+                $row++;
+
+                // Persentase downtime
+                $persentase = $jumlahBaris > 0 ? ($totalKasusLine / $jumlahBaris) * 100 : 0;
+                $sheet->setCellValue("A{$row}", "PERSENTASE DOWNTIME / PROD. TIME ");
+                $sheet->mergeCells("A{$row}:C{$row}");
+                $sheet->setCellValue("D{$row}", $persentase / 100); // simpan sebagai nilai numerik 0.xx
+                $sheet->getStyle("D{$row}")->getNumberFormat()->setFormatCode('0.00%');
+                $sheet->getStyle("A{$row}:D{$row}")->getFont()->setBold(true)->setSize(9);
+                $sheet->getStyle("A{$row}:D{$row}")
+                    ->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+                $sheet->getStyle("D{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+                $row += 2;
+            }
+
+            foreach (range(1, $row) as $r) {
+                $sheet->getRowDimension($r)->setRowHeight(-1);
+            }
+
+            $sheetIndex++;
+        }
+
+        $spreadsheet->setActiveSheetIndex(0);
+
+        $fileName = "Laporan_Kerusakan_Teknik_{$tahun}_" . date('Ymd_His') . ".xlsx";
+        $writer = new Xlsx($spreadsheet);
+        $tempFile = tempnam(sys_get_temp_dir(), $fileName);
+        $writer->save($tempFile);
+
+        return response()->download($tempFile, $fileName)->deleteFileAfterSend(true);
+    }
+
+    public function laporanbulanan(Request $request)
     {
         $periodes = $request->input('periode', date('Y-m'));
         [$tahun, $bulan] = explode('-', $periodes);
@@ -312,7 +479,7 @@ class PerbaikanTeknikController extends Controller
 
         // dd($hasil);
 
-        return view('teknik.perbaikanteknik.laporanperline', [
+        return view('Teknik.perbaikanteknik.laporanbulanan', [
             'hasil'    => $hasil,
             'grouped'  => $grouped,
             'periodes' => $periodes,
@@ -321,7 +488,7 @@ class PerbaikanTeknikController extends Controller
 
 
 
-    public function exportLaporanPerLine(Request $request)
+    public function laporanbulananexcel(Request $request)
     {
         $periodes = $request->input('periode', date('Y-m'));
         [$tahun, $bulan] = explode('-', $periodes);
@@ -580,7 +747,7 @@ class PerbaikanTeknikController extends Controller
     }
 
 
-    public function laporanpertahun(Request $request)
+    public function laporantahunan(Request $request)
     {
         $tahun = $request->input('tahun', date('Y'));
 
@@ -613,13 +780,13 @@ class PerbaikanTeknikController extends Controller
             }
         }
 
-        return view('admin/kerusakanteknik/laporanpertahun', [
+        return view('teknik.perbaikanteknik.laporantahunan', [
             'data' => $data,
             'tahun' => $tahun,
         ]);
     }
 
-    public function exportPertahunExcel(Request $request)
+    public function laporantahunanexcel(Request $request)
     {
         $tahun = $request->input('tahun', date('Y'));
 
@@ -737,5 +904,55 @@ class PerbaikanTeknikController extends Controller
         $writer->save($temp_file);
 
         return response()->download($temp_file, $fileName)->deleteFileAfterSend(true);
+    }
+
+
+
+
+
+    //laporandaftarmasalahmesin
+    public function laporandaftarmasalahmesin(Request $request)
+    {
+
+        $datau = unit_msn::orderby('id', 'DESC')->get();
+        $datal = vmacunit::orderby('id', 'DESC')->get();
+
+        $line = $request->cariline;
+        $umsn = $request->cariunitmsn;
+        $masalah = $request->masalah;
+        $penyebab = $request->penyebab;
+
+        if ($line == null) {
+            $list = prob_msn::join('prob_msds', 'prob_msns.prob_cod', '=', 'prob_msds.prob_cod')
+                ->where('line', 'like', '%' . $line . '%')
+                ->where('unitmesin', 'like', '%' . $umsn . '%')
+                ->where('masalah', 'like', '%' . $masalah . '%')
+                ->where('penyebab', 'like', '%' . $penyebab . '%')
+                ->orderby('prob_msns.id', 'desc')
+                ->get(['prob_msns.*', 'prob_msds.*']);
+        } else {
+            # code...
+            $list = prob_msn::join('prob_msds', 'prob_msns.prob_cod', '=', 'prob_msds.prob_cod')
+                ->where('line', $line)
+                ->where('unitmesin', 'like', '%' . $umsn . '%')
+                ->where('masalah', 'like', '%' . $masalah . '%')
+                ->where('penyebab', 'like', '%' . $penyebab . '%')
+                ->orderby('prob_msns.id', 'desc')
+                ->get(['prob_msns.*', 'prob_msds.*']);
+        }
+
+        // $list = prob_msd::get();
+
+        return view('teknik.perbaikanteknik.daftarmasalahmesin', compact('list', 'datau', 'datal', 'list'));
+    }
+
+    public function laporandaftarmasalahmesin_d($id)
+    {
+        $v = prob_msd::findorfail($id);
+        $view = prob_msn::where('prob_cod', $v->prob_cod)->first();
+        $view_d = prob_msd::where('id', $id)->first();
+
+
+        return view('teknik.perbaikanteknik.daftarmasalahmesin_d', compact('view', 'view_d'));
     }
 }

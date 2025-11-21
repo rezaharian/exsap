@@ -25,11 +25,13 @@
 
             <div class="d-flex align-items-center gap-2">
                 <!-- Tombol Export Excel -->
-                {{-- <button type="button"
-                    class="btn btn-outline-success btn-sm rounded-pill shadow-sm d-flex align-items-center"
-                    data-bs-toggle="modal" data-bs-target="#tahunModal">
-                    <i class="bi bi-file-earmark-excel me-1"></i> Excel
-                </button> --}}
+                @can('perbaikan_teknik_excel')
+                    <button type="button"
+                        class="btn btn-outline-success btn-sm rounded-pill shadow-sm d-flex align-items-center"
+                        data-bs-toggle="modal" data-bs-target="#tahunModal">
+                        <i class="bi bi-file-earmark-excel me-1"></i> Excel
+                    </button>
+                @endcan
 
                 {{-- <a href="{{ route('admopteknik.kerusakanteknik.laporanpertahun') }}"
                     class="btn btn-outline-primary btn-sm rounded-pill shadow-sm d-flex align-items-center">
@@ -41,10 +43,12 @@
                     <i class="fas fa-file-export me-1"></i> Laporan Per Line
                 </a> --}}
 
-                {{-- <a href="{{ route('namamesin.index') }}"
-                    class="btn btn-outline-secondary btn-sm rounded-pill shadow-sm d-flex align-items-center">
-                    <i class="fas fa-cogs me-1"></i> Daftar Mesin
-                </a> --}}
+                @can('perbaikan_teknik_create')
+                    <a href="{{ route('teknik.perbaikanteknik.mesin.index') }}"
+                        class="btn btn-outline-secondary btn-sm rounded-pill shadow-sm d-flex align-items-center">
+                        <i class="fas fa-cogs me-1"></i> Daftar Mesin
+                    </a>
+                @endcan
 
                 @can('perbaikan_teknik_create')
                     <a href="{{ route('teknik.perbaikanteknik.create') }}"
@@ -56,7 +60,7 @@
         </div>
 
         {{-- ✅ Modal Pilih Tahun Export --}}
-        {{-- <div class="modal fade" id="tahunModal" tabindex="-1" aria-labelledby="tahunModalLabel" aria-hidden="true">
+        <div class="modal fade" id="tahunModal" tabindex="-1" aria-labelledby="tahunModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content rounded-4 shadow-lg border-0">
                     <div class="modal-header border-bottom-0 pb-0">
@@ -87,7 +91,8 @@
                     </div>
                 </div>
             </div>
-        </div> --}}
+        </div>
+
 
         {{-- ✅ Table Data --}}
         <div class="table-responsive">
@@ -107,7 +112,7 @@
                 </thead>
                 <tbody class="text-dark">
                     @forelse($data as $row)
-                        <tr style="font-size: 7pt; color: #000;">
+                        <tr style="font-size: 11px; color: #000;">
                             <td class="text-center">{{ $loop->iteration }}</td>
                             <td class="text-center">{{ \Carbon\Carbon::parse($row->tgl)->format('d M Y') }}</td>
                             <td>{{ $row->lokasi_line }}</td>
@@ -120,26 +125,31 @@
                                 {{ $row->tindakan_perbaikan }}
                             </td>
                             <td>{{ $row->pelaksana }}</td>
-                            {{-- <td class="text-center">
-                                <a href="{{ route('kerusakanteknik.show', $row->id) }}"
-                                    class="btn btn-outline-info btn-xs me-1" title="Detail">
-                                    <i class="fas fa-eye"></i>
-                                </a>
-                                <a href="{{ route('kerusakanteknik.edit', $row->id) }}"
-                                    class="btn btn-outline-warning btn-xs me-1" title="Edit">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-                                <form action="{{ route('kerusakanteknik.destroy', $row->id) }}" method="POST"
-                                    class="d-inline">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-outline-danger btn-xs"
-                                        onclick="return confirm('Yakin hapus data?')" title="Hapus">
-                                        <i class="fas fa-trash-alt"></i>
-                                    </button>
-                                </form>
-                            </td> --}}
-                            <td> </td>
+                            <td class="text-center">
+                                @can('perbaikan_teknik_view')
+                                    <a href="{{ route('teknik.perbaikanteknik.show', $row->id) }}"
+                                        class="btn btn-sm btn-outline-info btn-xs me-1" title="Detail">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                @endcan
+                                @can('perbaikan_teknik_edit')
+                                    <a href="{{ route('teknik.perbaikanteknik.edit', $row->id) }}"
+                                        class="btn btn-sm btn-outline-warning btn-xs me-1" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                @endcan
+                                @can('perbaikan_teknik_delete')
+                                    <form action="{{ route('teknik.perbaikanteknik.delete', $row->id) }}" method="POST"
+                                        class="d-inline">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-sm btn-outline-danger btn-xs"
+                                            onclick="return confirm('Yakin hapus data?')" title="Hapus">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </form>
+                                @endcan
+                            </td>
                         </tr>
                     @empty
                         <tr>
@@ -152,108 +162,42 @@
     </div>
 
     {{-- ✅ Styling --}}
-    <style>
-        /* Ukuran tombol kecil */
-        .btn-xs {
-            padding: .2rem .25rem;
-            font-size: .65rem;
-            line-height: 1;
-            border-radius: .2rem;
-        }
 
-        /* Warna teks tabel jadi hitam pekat */
-        #kerusakanTable th,
-        #kerusakanTable td {
-            color: #000 !important;
-        }
 
-        /* Penyesuaian DataTables */
-        #kerusakanTable_wrapper .dataTables_length,
-        #kerusakanTable_wrapper .dataTables_filter,
-        #kerusakanTable_wrapper .dataTables_info,
-        #kerusakanTable_wrapper .dataTables_paginate {
-            font-size: 0.75rem;
-            color: #000;
-        }
-
-        #kerusakanTable_wrapper .form-select,
-        #kerusakanTable_wrapper .form-control {
-            padding: .1rem .25rem;
-            font-size: .75rem;
-            height: auto;
-            color: #000;
-        }
-
-        #kerusakanTable_wrapper .paginate_button {
-            padding: .1rem .4rem !important;
-            font-size: .7rem;
-        }
-
-        .alert {
-            font-size: 0.8rem;
-            margin-top: .5rem;
-        }
-
-        .btn-close {
-            font-size: .6rem;
-        }
-    </style>
-
-    {{-- ✅ Script --}}
     <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         $(document).ready(function() {
-            // ✅ DataTables
-            $('#kerusakanTable').DataTable({
-                paging: true,
-                searching: true,
-                ordering: true,
-                lengthMenu: [5, 10, 25, 50],
-                pageLength: 10,
-                language: {
-                    search: "Cari:",
-                    lengthMenu: "Tampil _MENU_ data",
-                    zeroRecords: "Data tidak ditemukan",
-                    info: "Menampilkan _START_ - _END_ dari _TOTAL_ data",
-                    infoEmpty: "Tidak ada data tersedia",
-                    infoFiltered: "(disaring dari _MAX_ total data)",
-                    paginate: {
-                        previous: "&laquo;",
-                        next: "&raquo;"
-                    }
-                },
-                columnDefs: [{
-                    orderable: false,
-                    targets: -1
-                }],
-                dom: '<"top"f>rt<"bottom"lip><"clear">'
+
+            // Klik label → trigger change radio (fix jQuery 3.7.1)
+            $(document).on('click', '.year-option label', function() {
+                let forId = $(this).attr('for');
+                $("#" + forId).prop('checked', true).trigger('change');
             });
 
-            // ✅ Export Tahun (auto-close modal)
-            $('input[name="tahun"]').on('change', function() {
+            // Event Export Tahun
+            $(document).on('change', 'input[name="tahun"]', function() {
                 const tahun = $(this).val();
-                if (tahun) {
-                    $('#prosesExport').removeClass('d-none');
-                    $('.year-option input, .year-option label').prop('disabled', true);
+                if (!tahun) return;
 
-                    const url = tahun = " + tahun;
+                $('#prosesExport').removeClass('d-none');
+                $('.year-option input, .year-option label').prop('disabled', true);
 
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = '';
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
+                let baseUrl =
+                    "{{ route('teknik.perbaikanteknik.excel', ['tahun' => 'TAHUN_PLACEHOLDER']) }}";
+                const url = baseUrl.replace("TAHUN_PLACEHOLDER", tahun);
 
-                    setTimeout(() => {
-                        $('#tahunModal').modal('hide');
-                        $('#prosesExport').addClass('d-none');
-                        $('.year-option input, .year-option label').prop('disabled', false);
-                        $('input[name="tahun"]').prop('checked', false);
-                    }, 1000);
-                }
+                const link = document.createElement('a');
+                link.href = url;
+                link.click();
+
+                setTimeout(() => {
+                    $('#tahunModal').modal('hide');
+                    $('#prosesExport').addClass('d-none');
+                    $('.year-option input, .year-option label').prop('disabled', false);
+                    $('input[name="tahun"]').prop('checked', false);
+                }, 800);
             });
+
         });
     </script>
 @endsection
