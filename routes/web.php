@@ -4,9 +4,11 @@ use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\UserAccessController;
 use App\Http\Controllers\Produksi\InputCounterController;
+use App\Http\Controllers\Produksi\LokasiBarangJadiController;
 use App\Http\Controllers\Produksi\SisaStokBahanBakuController;
 use App\Http\Controllers\Produksi\TargetHarianController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Qc\SpkuController;
 use App\Http\Controllers\Teknik\KerusakanMesinController;
 use App\Http\Controllers\Teknik\NamaMesinController;
 use App\Http\Controllers\Teknik\PerbaikanTeknikController;
@@ -198,6 +200,83 @@ Route::middleware('auth')->group(function () {
             ->name('produksi.sisastokbahanbaku.destroy');
         //auto
         Route::post('sisastokbahanbaku/spkfromview', [SisaStokBahanBakuController::class, 'spkfromview'])->name('produksi.sisastokbahanbaku.spkfromview');
+
+        ///////////////////  LOKASI BARANG JADI   /////////////
+        // INDEX
+        Route::get('/lokasibarangjadi/index', [LokasiBarangJadiController::class, 'index'])
+            ->middleware('permission:target_harian_view')
+            ->name('produksi.lokasibarangjadi.index');
+        // CREATE
+        Route::get('/lokasibarangjadi/create', [LokasiBarangJadiController::class, 'create'])
+            ->middleware('permission:target_harian_view')
+            ->name('produksi.lokasibarangjadi.create');
+        // STORE
+        Route::post('/lokasibarangjadi/store', [LokasiBarangJadiController::class, 'store'])
+            ->middleware('permission:target_harian_view')
+            ->name('produksi.lokasibarangjadi.store');
+        // EDIT
+        Route::get('/lokasibarangjadi/edit/{tgl_prod}', [LokasiBarangJadiController::class, 'edit'])
+            ->middleware('permission:target_harian_view')
+            ->name('produksi.lokasibarangjadi.edit');
+        // UPDATE
+        Route::put('/lokasibarangjadi/update/{tgl_prod}', [LokasiBarangJadiController::class, 'update'])
+            ->middleware('permission:target_harian_view')
+            ->name('produksi.lokasibarangjadi.update');
+        // DELETE
+        Route::delete(
+            '/lokasibarangjadi/delete/{tgl_prod}',
+            [LokasiBarangJadiController::class, 'destroy']
+        )
+            ->middleware('permission:target_harian_view')
+            ->name('produksi.lokasibarangjadi.destroy');
+    });
+    Route::get('/search-spk', [LokasiBarangJadiController::class, 'searchSpk'])->name('search.spk');
+    Route::get('/search-spk-superker', [LokasiBarangJadiController::class, 'searchSpksuperker'])->name('search.spksuperker');
+
+
+    //////////////////////
+    /// QC  ////
+    /////////////////
+    Route::prefix('qc/')->group(function () {
+        Route::get('/autocomplete-spk', [spkuController::class, 'autocomplete'])->name('autocomplete.spk');
+
+        ///////////////////   TARGET HARIAN   /////////////
+        // INDEX
+        Route::get('/spku/index', [SpkuController::class, 'index'])
+            ->middleware('permission:spku_view')
+            ->name('qc.spku.index');
+
+        // CREATE
+        Route::get('/spku/create', [SpkuController::class, 'create'])
+            ->middleware('permission:spku_create')
+            ->name('qc.spku.create');
+
+        Route::post('/spku/store', [SpkuController::class, 'store'])
+            ->middleware('permission:spku_create')
+            ->name('qc.spku.store');
+
+        // EDIT / UPDATE
+        Route::get('/spku/{id}/edit', [SpkuController::class, 'edit'])
+            ->middleware('permission:spku_edit')
+            ->name('qc.spku.edit');
+
+        Route::put('/spku/{id}/update', [SpkuController::class, 'update'])
+            ->middleware('permission:spku_edit')
+            ->name('qc.spku.update');
+
+        // DELETE
+        Route::delete('/spku/delete{id}', [SpkuController::class, 'destroy'])
+            ->middleware('permission:spku_delete')
+            ->name('qc.spku.destroy');
+
+        // laporan/rekap
+        Route::get('/spku/laporan', [SpkuController::class, 'laporan'])
+            ->middleware('permission:spku_view')
+            ->name('qc.spku.laporan');
+        //show
+        Route::get('/spku/show/{id}', [SpkuController::class, 'show'])
+            ->middleware('permission:spku_view')
+            ->name('qc.spku.show');
     });
 
 

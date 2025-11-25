@@ -37,9 +37,32 @@
                     @can('input_counter_view')
                         <a href="{{ route('produksi.sisastokbahanbaku.index') }}"
                             class="d-flex align-items-center px-1 py-1 hover-bg {{ request()->routeIs('produksi.sisastokbahanbaku.index.*') ? 'bg-light fw-semibold' : '' }}">
-                            <i class="bi bi-box-seam me-2"></i> Sisa Stok Bahan Baku
+                            <i class="bi bi-box-seam me-2"></i> Sisa Stok Bahan Baku crud belum, select2 error
                         </a>
                     @endcan
+                    @can('lokasi_barang_jadi_view')
+                        <a href="{{ route('produksi.lokasibarangjadi.index') }}"
+                            class="d-flex align-items-center px-1 py-1 hover-bg {{ request()->routeIs('produksi.lokasibarangjadi.index.*') ? 'bg-light fw-semibold' : '' }}">
+                            <i class="bi bi-box-seam me-2"></i> Lokasi Barang Jadi crud belum, select2 error
+                        </a>
+                    @endcan
+                </nav>
+            </div>
+        @endcanany
+        {{-- QC Section --}}
+        @canany(['spku_view'])
+            <div class="-1 mt-3">
+                <label class="bg-secondary text-white text-center py-1 w-100 d-block">
+                    QC
+                </label>
+                <nav class="nav flex-column ms-2 mt-2">
+                    @can('spku_view')
+                        <a href="{{ route('qc.spku.index') }}"
+                            class="d-flex align-items-center px-1 py-1 hover-bg {{ request()->routeIs('qc.spku.index.*') ? 'bg-light fw-semibold' : '' }}">
+                            <i class="bi bi-file-earmark-bar-graph me-2"></i> SPKu
+                        </a>
+                    @endcan
+
 
 
                 </nav>
